@@ -1,10 +1,10 @@
 Changelog
 =========
 
-4.0.5 (unreleased)
+4.0.5 (2013-03-13)
 ------------------
 
-- Nothing changed yet.
+- Update to foundation to 4.0.5 [toutpt]
 
 
 4.0.4 (2013-03-07)
