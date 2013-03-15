@@ -5,6 +5,7 @@ Changelog
 ------------------
 
 - Update to foundation 4.0.7 [toutpt]
+- Add master version of foundation.js [toutpt]
 
 
 4.0.5 (2013-03-13)

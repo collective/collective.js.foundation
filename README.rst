@@ -10,6 +10,7 @@ Resources::
   ++resource++collective.js.foundation/css/normalize.css
   ++resource++collective.js.foundation/css/foundation.min.css
   ++resource++collective.js.foundation/js/foundation.min.js
+  ++resource++collective.js.foundation/js/foundation.master.js
 
 For an integration of foundation in plone, please take a look at
 plonetheme.foundation
