@@ -98,7 +98,7 @@ if (typeof jQuery === "undefined" &&
   window.Foundation = {
     name : 'Foundation',
 
-    version : '4.0.0',
+    version : '4.0.8',
 
     // global Foundation cache object
     cache : {},
@@ -108,7 +108,7 @@ if (typeof jQuery === "undefined" &&
           args = [scope, method, options, response],
           responses = [],
           nc = nc || false;
-
+          
       // disable library error catching,
       // used for development only
       if (nc) this.nc = nc;
@@ -189,16 +189,31 @@ if (typeof jQuery === "undefined" &&
       }
     },
 
+    random_str : function (length) {
+      var chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz'.split('');
+      
+      if (!length) {
+          length = Math.floor(Math.random() * chars.length);
+      }
+      
+      var str = '';
+      for (var i = 0; i < length; i++) {
+          str += chars[Math.floor(Math.random() * chars.length)];
+      }
+      return str;
+    },
+
     libs : {},
 
     // methods that can be inherited in libraries
     lib_methods : {
       set_data : function (node, data) {
         // this.name references the name of the library calling this method
-        var id = this.name + (+new Date());
+        var id = [this.name,+new Date(),Foundation.random_str(5)].join('-');
 
         Foundation.cache[id] = data;
         node.attr('data-' + this.name + '-id', id);
+        return data;
       },
 
       get_data : function (node) {
@@ -228,7 +243,7 @@ if (typeof jQuery === "undefined" &&
         };
       },
 
-      // parses data-options attribute on page nodes and turns
+      // parses data-options attribute on nodes and turns
       // them into an object
       data_options : function (el) {
         var opts = {}, ii, p,
@@ -236,7 +251,7 @@ if (typeof jQuery === "undefined" &&
             opts_len = opts_arr.length;
 
         function isNumber (o) {
-          return ! isNaN (o-0) && o !== null && o !== "" && o !== false;
+          return ! isNaN (o-0) && o !== null && o !== "" && o !== false && o !== true;
         }
 
         function trim(str) {
@@ -252,7 +267,7 @@ if (typeof jQuery === "undefined" &&
           if (/false/i.test(p[1])) p[1] = false;
           if (isNumber(p[1])) p[1] = parseInt(p[1], 10);
 
-          if (p.length === 2) {
+          if (p.length === 2 && p[0].length > 0) {
             opts[trim(p[0])] = trim(p[1]);
           }
         }
@@ -3019,7 +3034,7 @@ if (typeof jQuery === "undefined" &&
   Foundation.libs.section = {
     name: 'section',
 
-    version : '4.0.5',
+    version : '4.0.8',
 
     settings : {
       deep_linking: false,
@@ -3028,18 +3043,16 @@ if (typeof jQuery === "undefined" &&
     },
 
     init : function (scope, method, options) {
+      var self = this;
+
       this.scope = scope || this.scope;
       Foundation.inherit(this, 'throttle data_options');
 
-      if (typeof method === 'object') {
-        $.extend(true, this.settings, method);
-      }
-
       if (typeof method != 'string') {
         this.set_active_from_hash();
-        if (!this.settings.init) this.events();
+        this.events();
 
-        return this.settings.init;
+        return true;
       } else {
         return this[method].call(this, options);
       }
@@ -3047,31 +3060,36 @@ if (typeof jQuery === "undefined" &&
 
     events : function () {
       var self = this;
-      $(this.scope).on('click.fndtn.section', '[data-section] .title', function (e) {
-        $.extend(true, self.settings, self.data_options($(this).closest('[data-section]')));
-        self.toggle_active.call(this, e, self);
-      });
 
-      $(window).on('resize.fndtn.section', self.throttle(function () {
-        self.resize.call(this);
-      }, 30))
-      .on('hashchange', function () {
-        if (!self.settings.toggled){
-          self.set_active_from_hash();
-          $(this).trigger('resize');
-        }
-      }).trigger('resize');
+      $(this.scope)
+        .on('click.fndtn.section', '[data-section] .title', function (e) {
+          var $this = $(this),
+              section = $this.closest('[data-section]');
 
-      $(document).on('click.fndtn.section', function (e) {
-        if ($(e.target).closest('.title').length < 1) {
-          $('[data-section].vertical-nav, [data-section].horizontal-nav')
-            .find('section, .section')
-            .removeClass('active')
-            .attr('style', '');
-        }
-      });
+          self.toggle_active.call(this, e, self);
+        });
 
-      this.settings.init = true;
+      $(window)
+        .on('resize.fndtn.section', self.throttle(function () {
+          self.resize.call(this);
+        }, 30))
+        .on('hashchange', function () {
+          if (!self.settings.toggled){
+            self.set_active_from_hash();
+            $(this).trigger('resize');
+          }
+        }).trigger('resize');
+
+      $(document)
+        .on('click.fndtn.section', function (e) {
+          if ($(e.target).closest('.title').length < 1) {
+            $('[data-section].vertical-nav, [data-section].horizontal-nav')
+              .find('section, .section')
+              .removeClass('active')
+              .attr('style', '');
+          }
+        });
+
     },
 
     toggle_active : function (e, self) {
@@ -3079,10 +3097,12 @@ if (typeof jQuery === "undefined" &&
           section = $this.closest('section, .section'),
           content = section.find('.content'),
           parent = section.closest('[data-section]'),
-          self = Foundation.libs.section;
+          self = Foundation.libs.section,
+          settings = $.extend({}, self.settings, self.data_options(parent));
+
       self.settings.toggled = true;
 
-      if (!self.settings.deep_linking && content.length > 0) {
+      if (!settings.deep_linking && content.length > 0) {
         e.preventDefault();
       }
 
@@ -3099,7 +3119,7 @@ if (typeof jQuery === "undefined" &&
         var prev_active_section = null,
             title_height = self.outerHeight(section.find('.title'));
 
-        if (self.small(parent) || self.settings.one_up) {
+        if (self.small(parent) || settings.one_up) {
           prev_active_section = $this.closest('[data-section]').find('section.active, .section.active');
 
           if (self.small(parent)) {
@@ -3116,14 +3136,17 @@ if (typeof jQuery === "undefined" &&
         }
 
         section.addClass('active');
+
         if (prev_active_section !== null) {
           prev_active_section.removeClass('active').attr('style', '');
         }
       }
+
       setTimeout(function () {
         self.settings.toggled = false;
       }, 300);
-      self.settings.callback();
+
+      settings.callback();
     },
 
     resize : function () {
@@ -3132,7 +3155,9 @@ if (typeof jQuery === "undefined" &&
 
       sections.each(function() {
         var $this = $(this),
-            active_section = $this.find('section.active, .section.active');
+            active_section = $this.find('section.active, .section.active'),
+            settings = $.extend({}, self.settings, self.data_options($this));
+
         if (active_section.length > 1) {
           active_section
             .not(':first')
@@ -3142,6 +3167,7 @@ if (typeof jQuery === "undefined" &&
           && !self.is_vertical($this)
           && !self.is_horizontal($this)
           && !self.is_accordion($this)) {
+
           var first = $this.find('section, .section').first();
           first.addClass('active');
 
@@ -3157,6 +3183,7 @@ if (typeof jQuery === "undefined" &&
         } else {
           active_section.css('padding-top', self.outerHeight(active_section.find('.title')));
         }
+
         self.position_titles($this);
 
         if (self.is_horizontal($this) && !self.small($this)) {
@@ -3185,10 +3212,10 @@ if (typeof jQuery === "undefined" &&
           self = this;
 
       sections.each(function () {
-        var section = $(this);
-        $.extend(true, self.settings, self.data_options(section));
+        var section = $(this),
+            settings = $.extend({}, self.settings, self.data_options(section));
 
-        if (hash.length > 0 && self.settings.deep_linking) {
+        if (hash.length > 0 && settings.deep_linking) {
           section
             .find('section, .section')
             .attr('style', '')
@@ -3244,6 +3271,10 @@ if (typeof jQuery === "undefined" &&
     },
 
     small : function (el) {
+      var settings = $.extend({}, this.settings, this.data_options(el));
+      if (el && el.hasClass('tabs')) {
+        return false;
+      }
       if (el && this.is_accordion(el)) {
         return true;
       }
@@ -3259,11 +3290,10 @@ if (typeof jQuery === "undefined" &&
     off : function () {
       $(this.scope).off('.fndtn.section');
       $(window).off('.fndtn.section');
-      this.settings.init = false;
+      $(document).off('.fndtn.section')
     }
   };
-}(Foundation.zj, this, this.document));
-/*jslint unparam: true, browser: true, indent: 2 */
+}(Foundation.zj, this, this.document));/*jslint unparam: true, browser: true, indent: 2 */
 
 ;(function ($, window, document, undefined) {
   'use strict';
@@ -3547,7 +3577,7 @@ if (typeof jQuery === "undefined" &&
             topbar.parent().removeClass('fixed');
             $('body').css('padding-top','0');
             window.scrollTo(0);
-          } else {
+          } else if (topbar.hasClass('fixed expanded')) {
             topbar.parent().addClass('fixed');
             $('body').css('padding-top',offst);
           }
