@@ -3,7 +3,7 @@ Introduction
 
 This addon provide foundation as browser resource for Plone
 
-Version: 4.0.8
+Version: 4.0.9
 
 Resources::
 

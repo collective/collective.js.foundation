@@ -980,7 +980,7 @@ if (typeof jQuery === "undefined" &&
   Foundation.libs.dropdown = {
     name : 'dropdown',
 
-    version : '4.0.6',
+    version : '4.0.9',
 
     settings : {
       activeClass: 'open'
@@ -1071,10 +1071,18 @@ if (typeof jQuery === "undefined" &&
           top: position.top + this.outerHeight(target)
         });
       } else {
+        if ($(window).width() > this.outerWidth(dropdown) + target.offset().left) {
+          var left = position.left;
+        } else {
+          if (!dropdown.hasClass('right')) {
+            dropdown.addClass('right');
+          }
+          var left = position.left - (this.outerWidth(dropdown) - this.outerWidth(target));
+        }
         dropdown.attr('style', '').css({
           position : 'absolute',
           top: position.top + this.outerHeight(target),
-          left: position.left
+          left: left
         });
       }
 
@@ -1152,14 +1160,9 @@ if (typeof jQuery === "undefined" &&
             if ($associatedElement.attr('type') === 'checkbox') {
               e.preventDefault();
               $customCheckbox = $(this).find('span.custom.checkbox');
-
               //the checkbox might be outside after the label
               if ($customCheckbox.length == 0) {
-                $customCheckbox = $(this).next('span.custom.checkbox');
-              }
-              //the checkbox might be outside before the label
-              if ($customCheckbox.length == 0) {
-                $customCheckbox = $(this).prev('span.custom.checkbox');
+                $customCheckbox = $(this).siblings('span.custom.checkbox').first();
               }
               self.toggle_checkbox($customCheckbox);
             } else if ($associatedElement.attr('type') === 'radio') {
@@ -1167,11 +1170,7 @@ if (typeof jQuery === "undefined" &&
               $customRadio = $(this).find('span.custom.radio');
               //the radio might be outside after the label
               if ($customRadio.length == 0) {
-                $customRadio = $(this).next('span.custom.radio');
-              }
-              //the radio might be outside before the label
-              if ($customRadio.length == 0) {
-                $customRadio = $(this).prev('span.custom.radio');
+                $customRadio = $(this).siblings('span.custom.radio').first();
               }
               self.toggle_radio($customRadio);
             }
@@ -2236,7 +2235,7 @@ if (typeof jQuery === "undefined" &&
   Foundation.libs.orbit = {
     name: 'orbit',
 
-    version: '4.0.0',
+    version: '4.0.7',
 
     settings: {
       timer_speed: 10000,
@@ -2759,7 +2758,7 @@ if (typeof jQuery === "undefined" &&
   Foundation.libs.reveal = {
     name: 'reveal',
 
-    version : '4.0.6',
+    version : '4.0.9',
 
     locked : false,
 
@@ -2841,29 +2840,35 @@ if (typeof jQuery === "undefined" &&
         var modal = $(this.scope);
       }
 
-      var open_modal = $('.reveal-modal.open');
+      if (!modal.hasClass('open')) {
+        var open_modal = $('.reveal-modal.open');
 
-      if (typeof modal.data('css-top') === 'undefined') {
-        modal.data('css-top', parseInt(modal.css('top'), 10))
-          .data('offset', this.cache_offset(modal));
+        if (typeof modal.data('css-top') === 'undefined') {
+          modal.data('css-top', parseInt(modal.css('top'), 10))
+            .data('offset', this.cache_offset(modal));
+        }
+
+        modal.trigger('open');
+
+        if (open_modal.length < 1) {
+          this.toggle_bg(modal);
+        }
+        this.hide(open_modal, this.settings.css.open);
+        this.show(modal, this.settings.css.open);
       }
-
-      modal.trigger('open');
-
-      if (open_modal.length < 1) {
-        this.toggle_bg(modal);
-      }
-
-      this.toggle_modals(open_modal, modal);
     },
 
     close : function (modal) {
-      var modal = modal || $(this.scope);
-      this.locked = true;
-      var open_modal = $('.reveal-modal.open').not(modal);
-      modal.trigger('close');
-      this.toggle_bg(modal);
-      this.toggle_modals(open_modal, modal);
+
+      var modal = modal || $(this.scope),
+          open_modals = $('.reveal-modal.open');
+
+      if (open_modals.length > 0) {
+        this.locked = true;
+        modal.trigger('close');
+        this.toggle_bg(modal);
+        this.hide(open_modals, this.settings.css.close);
+      }
     },
 
     close_targets : function () {
@@ -2876,20 +2881,8 @@ if (typeof jQuery === "undefined" &&
       return base;
     },
 
-    toggle_modals : function (open_modal, modal) {
-      if (open_modal.length > 0) {
-        this.hide(open_modal, this.settings.css.close);
-      }
-
-      if (modal.filter(':visible').length > 0) {
-        this.hide(modal, this.settings.css.close);
-      } else {
-        this.show(modal, this.settings.css.open);
-      }
-    },
-
     toggle_bg : function (modal) {
-      if (this.settings.bg.length === 0) {
+      if ($('.reveal-modal-bg').length === 0) {
         this.settings.bg = $('<div />', {'class': this.settings.bgClass})
           .insertAfter(modal);
       }
@@ -3034,7 +3027,7 @@ if (typeof jQuery === "undefined" &&
   Foundation.libs.section = {
     name: 'section',
 
-    version : '4.0.8',
+    version : '4.0.9',
 
     settings : {
       deep_linking: false,
@@ -3083,7 +3076,7 @@ if (typeof jQuery === "undefined" &&
       $(document)
         .on('click.fndtn.section', function (e) {
           if ($(e.target).closest('.title').length < 1) {
-            $('[data-section].vertical-nav, [data-section].horizontal-nav')
+            $('[data-section="vertical-nav"], [data-section="horizontal-nav"]')
               .find('section, .section')
               .removeClass('active')
               .attr('style', '');
@@ -3195,15 +3188,19 @@ if (typeof jQuery === "undefined" &&
     },
 
     is_vertical : function (el) {
-      return el.hasClass('vertical-nav');
+      return /vertical-nav/i.test(el.data('section'));
     },
 
     is_horizontal : function (el) {
-      return el.hasClass('horizontal-nav');
+      return /horizontal-nav/i.test(el.data('section'));
     },
 
     is_accordion : function (el) {
-      return el.hasClass('accordion');
+      return /accordion/i.test(el.data('section'));
+    },
+
+    is_tabs : function (el) {
+      return /tabs/i.test(el.data('section'));
     },
 
     set_active_from_hash : function () {
@@ -3272,7 +3269,7 @@ if (typeof jQuery === "undefined" &&
 
     small : function (el) {
       var settings = $.extend({}, this.settings, this.data_options(el));
-      if (el && el.hasClass('tabs')) {
+      if (this.is_tabs(el)) {
         return false;
       }
       if (el && this.is_accordion(el)) {
@@ -3576,7 +3573,7 @@ if (typeof jQuery === "undefined" &&
           if (topbar.parent().hasClass('fixed')) {
             topbar.parent().removeClass('fixed');
             $('body').css('padding-top','0');
-            window.scrollTo(0);
+            window.scrollTo(0,0);
           } else if (topbar.hasClass('fixed expanded')) {
             topbar.parent().addClass('fixed');
             $('body').css('padding-top',offst);
