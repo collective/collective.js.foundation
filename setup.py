@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-version = '4.1.6.dev0'
+version = '4.1.6'
 
 setup(name='collective.js.foundation',
       version=version,
