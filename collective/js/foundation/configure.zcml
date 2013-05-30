@@ -8,5 +8,22 @@
     name="collective.js.foundation"
     directory="resources"
     />
+  <browser:resource
+    name="collective.js.foundation.normalize.css"
+    file="resources/css/normalize.css"
+    />
+  <browser:resource
+    name="collective.js.foundation.theme.css"
+    file="resources/css/foundation.min.css"
+    />
+
+  <genericsetup:registerProfile
+      name="default"
+      title="collective.js.foundation"
+      directory="profiles/default"
+      description=""
+      provides="Products.GenericSetup.interfaces.EXTENSION"
+      />
+  <include package=".upgrades" />
 
 </configure>
